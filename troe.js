@@ -1,5 +1,10 @@
 const troe = {
-    bank: {}, // objects to be acted upon are stored in here, in there choosen object type
+    bank: {}, // objects to be acted upon are stored in here, in there choosen object type,
+
+    seen_troees: [], // holds all the initiated TROEElements
+
+    retrieveSeenTROEElement: (lookup_value, bank_name) => { return troe.seen_troees.find(e => e.lookup_value == lookup_value && e.bank_name == bank_name )},
+
     act: (DElement, action) => {
         /**
          * Method used to act on an event on DElement which simply stands for DOM Element.
@@ -39,10 +44,28 @@ const troe = {
                     }
                     
                 })
+                troe.predefs.addCancelEditButton(troeelement)
             }
+        },
+        "addCancelEditButton": (troeelement) => {
+            // adds a cancel button that returns the row to normal state if clicked
+            
+            if(!(troeelement instanceof TROEElement)) throw 'Not a TROEElement'
+            else {
+                troeelement.initiator.parentNode.insertAdjacentHTML('beforeEnd', `<button class="btn btn-warning btn-xs" type="button" onclick="troe.predefs.cancelEdit(this, '${troeelement.lookup_value}',  '${troeelement.bank_name}')"><span class="fa fa-ban"></span>   Cancel</button>`)
+                
+            }
+        },
+        "cancelEdit": (btn, lookup_value, bank_name) => {
+            troeelement = troe.retrieveSeenTROEElement(lookup_value, bank_name)
+            for(attr in troeelement.obj){
+                Array.from(troeelement._parent_row.children).find(td => td.dataset["troeField"] == attr).innerText = troeelement.obj[attr]
+            }
+            btn.remove()
         }
     }
 }
+
 
 class TROEElement {
     /********  parent tree structure: table->tbody->tr->td ********************/
@@ -60,5 +83,28 @@ class TROEElement {
         this._parent_table = this._parent_row.parentElement.parentElement
         this.bank_name = this._parent_table.dataset["troeBank"]
         this.lookup_field = this._parent_table.dataset["troeLookup"]
+
+        /**
+         * Object represetation
+         * loop through each cell of parent row to collect attributes and values 
+         * of the object that are TROE editable
+         */
+        this.obj = {}
+
+        Array.from(this._parent_row.children).forEach(td => {
+            // collect those with data-troe-field
+            if(td.dataset.hasOwnProperty("troeField")){
+                this.obj[td.dataset["troeField"]] = td.innerText
+            }
+        })
+
+        // add to seen_troees 
+        troe.seen_troees.push(this)
     }
 }
+
+/********************************* events ********************************/
+// document.querySelector(".troe-action-edit").addEventListener('click', e => {
+//     let troeElement = new TROEElement(e.target)
+//     troe.predefs.edit(troeElement)
+// })
