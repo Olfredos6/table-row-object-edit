@@ -3,6 +3,8 @@ const troe = {
 
     seen_troees: [], // holds all the initiated TROEElements
 
+    troee_in_edit: undefined, // a way to keep track of a troee being edited, until we find better
+
     retrieveSeenTROEElement: (lookup_value, bank_name) => { return troe.seen_troees.find(e => e.lookup_value == lookup_value && e.bank_name == bank_name )},
 
     act: (DElement, action) => {
@@ -44,6 +46,7 @@ const troe = {
                     }
                     
                 })
+                troe.troee_in_edit = troeelement
                 troe.predefs.addSaveChangesButton(troeelement)
                 troe.predefs.addCancelEditButton(troeelement)
             }
@@ -75,7 +78,7 @@ const troe = {
             let btnSave = Array.from(btn.parentElement.children).find(e => Array.from(e.classList).indexOf("troe-action-save") != -1 )
             btnSave.remove()
             btn.remove()
-            
+            troe.troee_in_edit = undefined
         }
     }
 }
