@@ -5,7 +5,9 @@ const troe = {
 
     troee_in_edit: undefined, // a way to keep track of a troee being edited, until we find better
 
-    retrieveSeenTROEElement: (lookup_value, bank_name) => { return troe.seen_troees.find(e => e.lookup_value == lookup_value && e.bank_name == bank_name) },
+    retrieveSeenTROEElement: (lookup_value, bank_name) => { 
+        return troe.seen_troees.find(e => e.lookup_value == lookup_value && e.bank_name == bank_name) 
+    },
 
     act: (DElement, action) => {
         /**
@@ -44,17 +46,33 @@ const troe = {
 
                             // input type
                             let input_type = cell.dataset["troeInputType"]
-                            cell.innerHTML = `<input type=${input_type} placeholder="${cell.troeField}" value="${tmp_value}" />`
+                            cell.innerHTML = `
+                            <input type=${input_type} placeholder="${cell.troeField}" value="${tmp_value}" 
+                            data-troe-lookup-value="${troeelement.lookup_value}" 
+                            data-troe-bank-name="${troeelement.bank_name}" 
+                            data-troe-field="${cell.dataset["troeField"]}" 
+                            oninput="troe.predefs.updateTroeelementFieldValue(this)" />`
                         }
 
                     })
                     troe.troee_in_edit = troeelement
                     troe.predefs.addSaveChangesButton(troeelement)
                     troe.predefs.addCancelEditButton(troeelement)
-                }else{
-                    troe.troee_in_edit._parent_row.style.backgroundColor ="#ff000042"
+                } else {
+                    troe.troee_in_edit._parent_row.style.backgroundColor = "#ff000042"
                     alert("Please finish editing the the highlithed element first")
                 }
+            }
+        },
+        "updateTroeelementFieldValue": (input) => {
+            /** updates TROEEelemt field value as we go */
+            let troeelement = troe.retrieveSeenTROEElement(input.dataset["troeLookupValue"], input.dataset["troeBankName"])
+            troeelement.obj[input.dataset["troeField"]] = input.value
+        },
+        "render": (troeelement) => {
+            // re-render a TROEElement based on its obj attribute
+            for (attr in troeelement.obj) {
+                Array.from(troeelement._parent_row.children).find(td => td.dataset["troeField"] == attr).innerText = troeelement.obj[attr]
             }
         },
         "addCancelEditButton": (troeelement) => {
@@ -62,7 +80,7 @@ const troe = {
 
             if (!(troeelement instanceof TROEElement)) throw 'Not a TROEElement'
             else {
-                troeelement.initiator.parentNode.insertAdjacentHTML('beforeEnd', `<button class="btn btn-warning btn-xs" type="button" onclick="troe.predefs.cancelEdit(this, '${troeelement.lookup_value}',  '${troeelement.bank_name}')"><span class="fa fa-ban"></span>   Cancel</button>`)
+                troeelement.initiator.parentNode.insertAdjacentHTML('beforeEnd', `<button class="btn btn-warning btn-xs troe-action-cancel-edit" type="button" onclick="troe.predefs.cancelEdit(this, '${troeelement.lookup_value}',  '${troeelement.bank_name}')"><span class="fa fa-ban"></span>   Cancel</button>`)
 
             }
         },
@@ -76,15 +94,33 @@ const troe = {
             }
         },
         "cancelEdit": (btn, lookup_value, bank_name) => {
-            troeelement = troe.retrieveSeenTROEElement(lookup_value, bank_name)
-            for (attr in troeelement.obj) {
-                Array.from(troeelement._parent_row.children).find(td => td.dataset["troeField"] == attr).innerText = troeelement.obj[attr]
-            }
+            let troeelement = troe.retrieveSeenTROEElement(lookup_value, bank_name)
+            troe.predefs.render(troeelement)
             // can find the save buton and remove it
             let btnSave = Array.from(btn.parentElement.children).find(e => Array.from(e.classList).indexOf("troe-action-save") != -1)
             btnSave.remove()
             btn.remove()
-            troe.troee_in_edit = undefined
+            troe.troee_in_edit._parent_row.style.backgroundColor =  // just in case
+                troe.troee_in_edit = undefined
+        },
+        "saveChanges": (btn) => { 
+            /**
+             * Just a wrapper that alllows recollecting the TROEElement
+             * to render
+             */
+            let updatedTroeelement = new TROEElement(btn, save=false)
+
+            // get the one having the same lookup value as this one
+            let toRender = troe.retrieveSeenTROEElement(updatedTroeelement.lookup_value, updatedTroeelement.bank_name)
+            troe.predefs.render(toRender)
+
+            // find btn cancel
+            let btnCancel = Array.from(btn.parentElement.children).find(e => Array.from(e.classList).indexOf("troe-action-cancel-edit") != -1)
+            btnCancel.remove()
+            btn.remove()
+
+            // return the updated TROEElement and can be used to update database
+            return toRender
         }
     }
 }
@@ -92,7 +128,7 @@ const troe = {
 
 class TROEElement {
     /********  parent tree structure: table->tbody->tr->td ********************/
-    constructor(DElement) {
+    constructor(DElement, save = true) {
 
         this.initiator = DElement;
 
@@ -112,23 +148,44 @@ class TROEElement {
          * loop through each cell of parent row to collect attributes and values 
          * of the object that are TROE editable
          */
-        this.obj = {}
 
+        let _obj = {}
         Array.from(this._parent_row.children).forEach(td => {
             // collect those with data-troe-field
             if (td.dataset.hasOwnProperty("troeField")) {
-                this.obj[td.dataset["troeField"]] = td.innerText
+                _obj[td.dataset["troeField"]] = td.innerText
             }
         })
-
+        this.obj = _obj
+        
         // add to seen_troees 
-        let seen_troee = troe.seen_troees.find(e => e.lookup_value == this.lookup_value)
-        if (!seen_troee)
-            troe.seen_troees.push(this)
-        else {
-            return seen_troee
+        if (save) {
+            let seen_troee = troe.seen_troees.find(e => e.lookup_value == this.lookup_value)
+            if (!seen_troee)
+                troe.seen_troees.push(this)
+            else {
+                return seen_troee
+            }
         }
     }
+
+    // get obj() {
+    //     /**returns an object representation of the TROEElement */
+    //     let _obj = {}
+
+    //     Array.from(this._parent_row.children).forEach(td => {
+    //         // collect those with data-troe-field
+    //         if (td.dataset.hasOwnProperty("troeField")) {
+    //             _obj[td.dataset["troeField"]] = td.innerText
+    //         }
+    //     })
+
+    //     return _obj
+    // }
+
+    // set obj(dict){
+    //     this.obj = dict
+    // }
 }
 
 /********************************* events ********************************/
