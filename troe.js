@@ -113,7 +113,12 @@ class TROEElement {
         })
 
         // add to seen_troees 
-        troe.seen_troees.push(this)
+        let seen_troee = troe.seen_troees.find(e=> e.lookup_value == this.lookup_value)
+        if(!seen_troee)
+            troe.seen_troees.push(this)
+        else{
+            return seen_troee
+        }
     }
 }
 
