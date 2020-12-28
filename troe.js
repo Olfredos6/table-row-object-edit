@@ -44,6 +44,7 @@ const troe = {
                     }
                     
                 })
+                troe.predefs.addSaveChangesButton(troeelement)
                 troe.predefs.addCancelEditButton(troeelement)
             }
         },
@@ -56,12 +57,25 @@ const troe = {
                 
             }
         },
+        "addSaveChangesButton": (troeelement) => {
+            // adds a cancel button that returns the row to normal state if clicked
+            
+            if(!(troeelement instanceof TROEElement)) throw 'Not a TROEElement'
+            else {
+                troeelement.initiator.parentNode.insertAdjacentHTML('beforeEnd', `<button class="btn btn-success btn-xs troe-action-save" type="button" onclick="troe.predefs.saveChanges(this, '${troeelement.lookup_value}',  '${troeelement.bank_name}')"><span class="fa fa-save"></span>   Save</button>`)
+                
+            }
+        },
         "cancelEdit": (btn, lookup_value, bank_name) => {
             troeelement = troe.retrieveSeenTROEElement(lookup_value, bank_name)
             for(attr in troeelement.obj){
                 Array.from(troeelement._parent_row.children).find(td => td.dataset["troeField"] == attr).innerText = troeelement.obj[attr]
             }
+            // can find the save buton and remove it
+            let btnSave = Array.from(btn.parentElement.children).find(e => Array.from(e.classList).indexOf("troe-action-save") != -1 )
+            btnSave.remove()
             btn.remove()
+            
         }
     }
 }
