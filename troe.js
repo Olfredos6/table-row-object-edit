@@ -1,7 +1,7 @@
 class TROEEManager {
     //bank: {}, // objects to be acted upon are stored in here, in there choosen object type,
 
-    constructor(lookup_field = "", bank_name = "", field_include = [], callbacks = {}, select_fields = {}) {
+    constructor(lookup_field = "", bank_name = "", field_include = [], callbacks = {}, select_fields = {}, custom_buttons=[]) {
         /**
          * select_fields is fomed the following way:
          * {'attr_name': [
@@ -24,6 +24,7 @@ class TROEEManager {
         this.bank_name = bank_name
         this.field_include = field_include
         this.select_fields = select_fields
+        this.custom_buttons = custom_buttons // a list of html for any custom button
     }
 
 
@@ -158,9 +159,12 @@ class TROEElement {
                 // }
             }
         }
-        // working 
+        // we first add custom butons if any
+        html += `<td>`
+        this.manager.custom_buttons.forEach(btn => {
+            html += btn
+        })
         html += `
-            <td>
                 <button class="btn btn-warning btn-xs troe-action-edit" type="button" onclick="${managerName}.retrieveSeenTROEElement('${this.lookup_value}').edit()"><span class="fa fa-edit"></span>   Edit</button>
                 <button class="btn btn-danger btn-xs troe-action-delete" type="button"><span class="fa fa-trash-o"></span>   Delete</button>
             </td>
